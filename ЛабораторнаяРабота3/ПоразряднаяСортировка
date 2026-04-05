@@ -1,0 +1,44 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+vector<int> combine_carts(vector<vector<int>>& сс) {
+    std::vector<int> combined_arr;
+    for (const auto& cart : сс) {
+        combined_arr.insert(combined_arr.end(),
+            cart.begin(), cart.end());
+    }
+    return combined_arr;
+}
+void sortingg(vector<int>& arr, int once) {
+    vector<vector<int>> cart(10); 
+    for (int i : arr) {
+        int indexCart = (i / once) % 10;
+        cart[indexCart].push_back(i);
+    }
+    arr = combine_carts(cart);
+}
+void radix_sort(vector<int>& arr) {
+    int max_num = *max_element(arr.begin(), arr.end());
+    int i = 1;
+    while (max_num / i > 0) {
+        sortingg(arr, i);
+        i = i * 10;
+    }
+}
+int main() {
+    setlocale(LC_ALL, "RU");
+    vector<int> arr = { 111, 42, 67, 52, 812, 24, 2, 66, 289, 55 };
+    cout << "начальный массив: ";
+    for (int i : arr) {
+        cout << i << " ";
+    }
+    cout << endl;
+    radix_sort(arr);
+    cout << "отсортированный массив: ";
+    for (int i : arr) {
+        cout << i << " ";
+    }
+    cout << endl;
+    return 0;
+} 
