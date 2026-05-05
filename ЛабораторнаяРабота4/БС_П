@@ -1,0 +1,46 @@
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <algorithm> 
+#include <chrono>   
+using namespace std;
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    for (int j = low; j < high; j++) {
+        if (arr[j] <= pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+void parallelQuickSort(vector<int>& arr, int low, int high, int num_threads) {
+    if (low < high) {
+        if (high - low < 100) {
+            sort(arr.begin() + low, arr.begin() + high + 1);
+            return;
+        }
+        int pivot_index = partition(arr, low, high);
+        if (num_threads > 1) {
+            thread leftThread(parallelQuickSort, ref(arr), low, pivot_index - 1, num_threads / 2);
+            parallelQuickSort(arr, pivot_index + 1, high, num_threads - num_threads / 2);
+            leftThread.join();
+        }
+        else {
+            parallelQuickSort(arr, low, pivot_index - 1, 1);
+            parallelQuickSort(arr, pivot_index + 1, high, 1);
+        }
+    }
+}
+
+double runTest(int size, int threads) {
+    vector<int> arr(size);
+    for (int i = 0; i < size; i++) arr[i] = rand() % 100000;
+    auto start = chrono::high_resolution_clock::now();
+    parallelQuickSort(arr, 0, size - 1, threads);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> diff = end - start;
+    return diff.count();
+}
