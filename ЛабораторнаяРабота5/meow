@@ -6,7 +6,6 @@ import math
 import heapq
 import time
 
-
 def haversine(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
     lon1, lat1 = coord1
     lon2, lat2 = coord2
@@ -132,8 +131,8 @@ if __name__ == "__main__":
     nodes_data, edges_list = read_graphml("astana_road_network.graphml")
     print(f"количество вершин: {len(nodes_data)}")
     print(f"количество рёбер: {len(edges_list)}")
-    start_query = "улица Мереке"
-    end_query = "улица Сырым батыра"
+    start_query = "Сығанақ көшесі"
+    end_query = "шоссе Алаш"
     start_idx = find_street_index(edges_list, start_query)
     end_idx = find_street_index(edges_list, end_query)
     if start_idx == -1 or end_idx == -1:
