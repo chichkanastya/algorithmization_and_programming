@@ -16,27 +16,32 @@ def haversine(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float
     a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-
 def dijkstra(graph: Dict[Tuple[float, float], List[Tuple[Tuple[float, float], float]]],
              start: Tuple[float, float],
-             end: Tuple[float, float]) -> Tuple[List[Tuple[float, float]], float, List[str]]:
+             end: Tuple[float, float],
+             edges_data: List[Tuple[Tuple[float, float], Tuple[float, float], str]]) -> Tuple[
+    List[Tuple[float, float]], float, List[str]]:
     queue = [(0.0, start)]
     distances = {start: 0.0}
     previous_nodes = {start: None}
     visited = set()
+
     while queue:
         (current_distance, current_node) = heapq.heappop(queue)
         if current_node in visited:
             continue
         visited.add(current_node)
+
         if current_node == end:
             break
+
         for neighbor, weight in graph.get(current_node, []):
             distance = current_distance + weight
             if distance < distances.get(neighbor, float('inf')):
                 distances[neighbor] = distance
                 previous_nodes[neighbor] = current_node
                 heapq.heappush(queue, (distance, neighbor))
+
     path = []
     if end in distances:
         current = end
@@ -44,8 +49,21 @@ def dijkstra(graph: Dict[Tuple[float, float], List[Tuple[Tuple[float, float], fl
             path.append(current)
             current = previous_nodes[current]
         path.reverse()
-    total_distance = distances.get(end, 0.0)
+
     street_names = []
+    if path:
+        name_lookup = {}
+        for u, v, name in edges_data:
+            name_lookup[(u, v)] = name
+            name_lookup[(v, u)] = name
+
+        for i in range(len(path) - 1):
+            u, v = path[i], path[i + 1]
+            street_name = name_lookup.get((u, v))
+            if street_name and (not street_names or street_names[-1] != street_name):
+                street_names.append(street_name)
+
+    total_distance = distances.get(end, 0.0)
     return path, total_distance, street_names
 
 def build_graph(edges: List[Tuple[Tuple[float, float], Tuple[float, float], str]]) -> Dict[Tuple[float, float], List[Tuple[Tuple[float, float], float]]]:
@@ -100,12 +118,12 @@ def visualize_path_with_network(nodes, edges, path, street_names=None, figsize=(
         path_lines = [(path[i], path[i+1]) for i in range(len(path)-1)]
         lc_path = LineCollection(path_lines, linewidths=2.0, colors='red', alpha=0.9)
         ax.add_collection(lc_path)
-    if street_names:
-        for i in range(len(path)-1):
-            mid_point = ((path[i][0] + path[i+1][0]) / 2, (path[i][1] + path[i+1][1]) / 2)
-            if i < len(street_names) and street_names[i]:
-                plt.text(mid_point[0], mid_point[1], street_names[i], fontsize=8, color='blue', ha='center')
-    ax.autoscale()
+    # if street_names:
+    #     for i in range(len(path)-1):
+    #         mid_point = ((path[i][0] + path[i+1][0]) / 2, (path[i][1] + path[i+1][1]) / 2)
+    #         if i < len(street_names) and street_names[i]:
+    #             plt.text(mid_point[0], mid_point[1], street_names[i], fontsize=8, color='blue', ha='center')
+    # ax.autoscale()
     plt.axis('equal')
     plt.title('Кратчайший маршрут')
     plt.xlabel('Долгота')
@@ -149,7 +167,7 @@ if __name__ == "__main__":
         start_node = edges[start_index][0]
         end_node = edges[end_index][1]
         graph = build_graph(edges)
-        path, distance, street_names = dijkstra(graph, start_node, end_node)
+        path, distance, street_names = dijkstra(graph, start_node, end_node, edges)
         if not path:
             print("Путь не найден")
         else:
