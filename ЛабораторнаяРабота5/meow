@@ -148,7 +148,7 @@ if __name__ == "__main__":
         if not path:
             print("Маршрут не найден.")
         else:
-            print(f"время выполнения алгоритма Дейкстры: {(end_time - start_time):.4f} сек")
-            print(f"Дистанция: {dist:.2f} км")
+            print(f"время выполнения алгоритма Дейкстры: {(end_time - start_time)} сек")
+            print(f"Дистанция: {dist} км")
             print("Улицы на пути:", ", ".join(streets))
             visualize_path_with_network(nodes_data, edges_list, path)
