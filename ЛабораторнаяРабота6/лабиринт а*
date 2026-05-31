@@ -1,0 +1,271 @@
+import pygame
+import sys
+import random
+from queue import PriorityQueue
+
+pygame.init()  # инициализация pygame
+pygame.font.init()  # инициализация шрифтов
+
+# константы размера поля и окна
+GRID_SIZE = 10
+CELL_SIZE = 60
+WINDOW_SIZE = GRID_SIZE * CELL_SIZE
+
+# цвета
+COLOR_WHITE = (255, 255, 255)
+COLOR_BLACK = (0, 0, 0)  # стена
+COLOR_GREEN = (0, 255, 0)  # старт
+COLOR_RED = (255, 0, 0)  # финиш
+COLOR_BLUE = (0, 0, 255)  # найденный путь
+COLOR_CYAN = (0, 255, 255)  # посещенные клетки
+COLOR_GREY = (128, 128, 128)  # линии сетки
+
+
+class Cell:  # класс клетки игрового поля
+    def __init__(self, x, y):
+        self.x = x  # X
+        self.y = y  # Y
+        self.type = "EMPTY"  # тип клетки: EMPTY, OBSTACLE, START, END, PATH, VISITED
+        self.f = 0  # полная стоимость пути f = g + h
+        self.g = float("inf")  # стоимость пути от старта
+        self.h = 0  # эвристика до финиша
+        self.weight = 1  # вес клетки
+        self.parent = None  # ссылка на родительскую клетку в пути
+
+    def __lt__(self, other):  # для сравнения в priorityqueue
+        return self.f < other.f
+
+
+def heuristic(a, b):  # манхэттенское расстояние
+    return abs(a.x - b.x) + abs(a.y - b.y)
+
+
+def is_valid(x, y):  # проверка выхода за границы
+    return 0 <= x < GRID_SIZE and 0 <= y < GRID_SIZE
+
+
+def reconstruct_path(current, grid):  # восстановление пути от финиша к старту
+    while current.parent is not None:
+        current = current.parent
+        if grid[current.x][current.y].type != "START":  # не закрашиваем старт
+            grid[current.x][current.y].type = "PATH"
+
+
+def a_star_algorithm(grid, start, end):
+    open_set = PriorityQueue()  # очередь с приоритетом
+    in_open_set = [[False for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]  # флаги открытых клеток
+    closed_set = [[False for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]  # флаги закрытых клеток
+
+    # инициализация стартовой клетки
+    start.g = 0
+    start.h = heuristic(start, end)
+    start.f = start.g + start.h
+    open_set.put((start.f, start))
+    in_open_set[start.x][start.y] = True
+
+    # смещения для соседей (вправо, влево, вниз, вверх)
+    dx = [0, 0, 1, -1]
+    dy = [1, -1, 0, 0]
+
+    while not open_set.empty():  # пока есть клетки для обработки
+        current = open_set.get()[1]  # берем клетку с мин f
+        in_open_set[current.x][current.y] = False
+
+        if current.x == end.x and current.y == end.y:  # достигли финиша
+            reconstruct_path(end, grid)
+            return True
+
+        closed_set[current.x][current.y] = True  # добавляем в закрытый список
+        if grid[current.x][current.y].type not in ("START", "END"):
+            grid[current.x][current.y].type = "VISITED"  # визуализация посещения
+
+        for i in range(4):  # проверка 4 соседей
+            nx = current.x + dx[i]
+            ny = current.y + dy[i]
+
+            # проверка валидности и отсутствия в закрытом списке/стене
+            if is_valid(nx, ny) and not closed_set[nx][ny] and grid[nx][ny].type != "OBSTACLE":
+                neighbor = grid[nx][ny]
+                temp_g = current.g + neighbor.weight  # новая стоимость пути
+
+                # если путь короче или клетка не в открытом списке
+                if temp_g < neighbor.g or not in_open_set[nx][ny]:
+                    neighbor.parent = current
+                    neighbor.g = temp_g
+                    neighbor.h = heuristic(neighbor, end)
+                    neighbor.f = neighbor.g + neighbor.h
+
+                    if not in_open_set[nx][ny]:
+                        open_set.put((neighbor.f, neighbor))
+                        in_open_set[nx][ny] = True
+
+    return False  # путь не найден
+
+
+def load_map(grid):  # загрузка карты по варианту (27)
+    grid.clear()
+    # создание пустой сетки
+    for i in range(GRID_SIZE):
+        row = []
+        for j in range(GRID_SIZE):
+            row.append(Cell(i, j))
+        grid.append(row)
+
+    # координаты стен
+    obstacles = [
+        #1
+        (0, 0), (1, 0), (5, 0), (6, 0),
+        #2
+        (1, 1), (8, 1),
+        #3
+        (1, 2), (4, 2), (5, 2), (6, 2), (9, 2),
+        #4
+        (5, 3),
+        # 5
+        (0, 4), (1, 4), (3, 4), (4, 4), (8, 4), (9, 4),
+        # 6
+        (7, 5),
+        # 7
+        (0, 6), (1, 6), (2, 6), (4, 6), (5, 6), (8, 6), (9, 6),
+        # 8
+        (3, 7), (5, 7), (9, 7),
+        # 9
+        (1, 8), (2, 8),
+        # 10
+        (1, 9), (2, 9), (4, 9), (5, 9), (6, 9), (7, 9)
+    ]
+    for x, y in obstacles:
+        grid[x][y].type = "OBSTACLE"
+
+    start = grid[0][3]  # стартовая позиция
+    start.type = "START"
+    start.g = float("inf")  # сброс стоимости
+
+    end = grid[9][9]  # финиш
+    end.type = "END"
+    end.g = float("inf")
+
+    return start, end
+
+
+def generate_random_map(grid, weighted):  # генерация случайной карты
+    grid.clear()
+    for i in range(GRID_SIZE):
+        row = []
+        for j in range(GRID_SIZE):
+            cell = Cell(i, j)
+            if random.randint(1, 100) < 25:  # 25% вероятность стены
+                cell.type = "OBSTACLE"
+            elif weighted:  # режим с весами
+                cell.weight = random.randint(1, 5)  # случайный вес от 1 до 5
+            row.append(cell)
+        grid.append(row)
+
+    start = grid[0][0]  # старт в левом верхнем углу
+    start.type = "START"
+    start.weight = 1
+
+    end = grid[GRID_SIZE - 1][GRID_SIZE - 1]  # финиш в правом нижнем углу
+    end.type = "END"
+    end.weight = 1
+
+    return start, end
+
+
+def draw_window(window, grid, font):  # отрисовка игрового окна
+    window.fill(COLOR_WHITE)
+
+    for i in range(GRID_SIZE):
+        for j in range(GRID_SIZE):
+            cell_data = grid[i][j]
+            rect = pygame.Rect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1)
+
+            # выбор цвета
+            if cell_data.type == "EMPTY":
+                if cell_data.weight > 1:  # отобаржение веса цветом
+                    intensity = 255 - (cell_data.weight * 40)
+                    color = (intensity, intensity, intensity)
+                else:
+                    color = COLOR_WHITE
+            elif cell_data.type == "OBSTACLE":
+                color = COLOR_BLACK
+            elif cell_data.type == "START":
+                color = COLOR_GREEN
+            elif cell_data.type == "END":
+                color = COLOR_RED
+            elif cell_data.type == "PATH":
+                color = COLOR_BLUE
+            elif cell_data.type == "VISITED":
+                color = COLOR_CYAN
+            else:
+                color = COLOR_WHITE
+
+            pygame.draw.rect(window, color, rect)  # отрисовка клетки
+
+            # отображение числового веса для клеток
+            if cell_data.weight > 1 and cell_data.type == "EMPTY":
+                text_surface = font.render(str(cell_data.weight), True, (255, 0, 0))
+                text_rect = text_surface.get_rect(center=(i * CELL_SIZE + CELL_SIZE // 2, j * CELL_SIZE + CELL_SIZE // 2))
+                window.blit(text_surface, text_rect)
+
+    # отрисовка линий сетки
+    for i in range(GRID_SIZE + 1):
+        pygame.draw.line(window, COLOR_GREY, (0, i * CELL_SIZE), (WINDOW_SIZE, i * CELL_SIZE))
+        pygame.draw.line(window, COLOR_GREY, (i * CELL_SIZE, 0), (i * CELL_SIZE, WINDOW_SIZE))
+
+    pygame.display.flip()  # обновление экрана
+
+
+def main():
+    window = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    pygame.display.set_caption("aлгоритм A*")
+    font = pygame.font.SysFont("Arial", 14)
+    clock = pygame.time.Clock()
+
+    grid = []
+    start, end = load_map(grid)  # загрузка начальной карты
+
+    # инструкции в консоль
+    print("управление:")
+    print("пробел - запустить поиск пути")
+    print("R - сгенерировать случайное поле (без весов)")
+    print("W - сгенерировать случайную карту с весами ячеек (1-5)")
+    print("I - сброс к варианту 27")
+
+    run = True
+    while run:  #главный игровой цикл
+        clock.tick(60)  # ограничение FPS
+        draw_window(window, grid, font)  # отрисовка кадра
+
+        for event in pygame.event.get():  # обработка событий
+            if event.type == pygame.QUIT:  # закрытие окна
+                run = False
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:  # нажатие клавиши
+                if event.key == pygame.K_SPACE:  # запуск A*
+                    # сброс состояния перед поиском
+                    for r in range(GRID_SIZE):
+                        for c in range(GRID_SIZE):
+                            grid[r][c].g = float("inf")
+                            grid[r][c].parent = None
+                            if grid[r][c].type in ["PATH", "VISITED"]:
+                                grid[r][c].type = "EMPTY"
+                    start.g = 0
+                    a_star_algorithm(grid, start, end)
+
+                if event.key == pygame.K_r:  # генерация случайного поля
+                    start, end = generate_random_map(grid, weighted=False)
+                    print("cгенерировано случайное поле")
+
+                if event.key == pygame.K_w:  # генерация взвешенной карты
+                    start, end = generate_random_map(grid, weighted=True)
+                    print("cгенерирована взвешенная случайная карта")
+
+                if event.key == pygame.K_i:  # сброс к вар 27
+                    start, end = load_map(grid)
+                    print("загружен вариант 27")
+
+
+main()
