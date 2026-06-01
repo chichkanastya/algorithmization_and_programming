@@ -351,7 +351,7 @@ def a_star_algorithm(grid, start, end):  # функция реализации �
                             True  # установка флага присутствия соседа в открытом списке
                         )
                         if not neighbor.is_start() and not neighbor.is_end():  # проверка типов ячейки
-                            neighbor.make_open()  # красим в GREEN (В очереди)
+                            neighbor.make_open()  # красим в зеленый 
 
     return False  # путь не найден
 
@@ -397,4 +397,4 @@ def main():
                     start, end = map_27(grid)  # принудительная загрузка расстановки варианта 27
                     print("загружен вариант 27")
 
-main()  # вызов главной функции 
+main()  # вызов главной функции
