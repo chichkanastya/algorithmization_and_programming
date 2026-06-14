@@ -1,0 +1,52 @@
+from collections import deque
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def max_depth(root: TreeNode):
+    if root is None:
+        return 0
+    return 1 + max(max_depth(root.left), max_depth(root.right))
+
+def build_tree_by_levels(levels: list):
+    flat_elements = []
+    for level in levels:
+        flat_elements.extend(level)
+    if not flat_elements or flat_elements[0] is None:
+        return None
+    root = TreeNode(flat_elements[0])
+    queue = deque([root])
+    i = 1
+    while queue and i < len(flat_elements):
+        curr = queue.popleft()
+        if curr:
+            if i < len(flat_elements) and flat_elements[i] is not None:
+                curr.left = TreeNode(flat_elements[i])
+                queue.append(curr.left)
+            i += 1
+            if i < len(flat_elements) and flat_elements[i] is not None:
+                curr.right = TreeNode(flat_elements[i])
+                queue.append(curr.right)
+            i += 1
+    return root
+
+user_levels = []
+level_index = 1
+n = int(input())
+for i in range(n):
+    line = input().strip()
+    current_level = []
+    for item in line.split():
+        if item == 'None':
+            current_level.append(None)
+        else:
+            current_level.append(int(item))
+            
+    user_levels.append(current_level)
+    level_index += 1
+
+user_tree = build_tree_by_levels(user_levels)
+print(f"максимальная глубина: {max_depth(user_tree)}")
