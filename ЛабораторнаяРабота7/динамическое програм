@@ -1,38 +1,39 @@
-n = int(input())
-costs = []
-for i in range(n):
-    costs.append(int(input()))
-dp = [[float('inf')] * (n + 2) for _ in range(n + 1)]
-dp[0][0] = 0
-for i in range(1, n + 1):
-    cost = costs[i - 1]
-    for j in range(n + 1):
+from functools import lru_cache
+import sys
+sys.setrecursionlimit(200000)
+def main():
+    n = int(input())
+    costs = []
+    for i in range(n):
+        costs.append(int(input()))
+    @lru_cache(None)
+    def solve(day, coupons):
+        if day == n:
+            return 0
+        cost = costs[day]
+        res = float('inf')
+        if coupons > 0:
+            res = min(res, solve(day + 1, coupons - 1))
         if cost > 500:
-            if j > 0:
-                dp[i][j] = min(dp[i][j], dp[i - 1][j - 1] + cost)
+            res = min(res, cost + solve(day + 1, coupons + 1))
         else:
-            dp[i][j] = min(dp[i][j], dp[i - 1][j] + cost)
-            
-        dp[i][j] = min(dp[i][j], dp[i - 1][j + 1])
-min_cost = float('inf')
-best_j = 0
-for j in range(n + 1):
-    if dp[n][j] <= min_cost:
-        min_cost = dp[n][j]
-        best_j = j
-used_coupons_days = []
-curr_j = best_j
-total_coupons_spent = 0
-for i in range(n, 0, -1):
-    cost = costs[i - 1]
-    if dp[i][curr_j] == dp[i - 1][curr_j + 1]:
-        used_coupons_days.append(i)
-        total_coupons_spent += 1
-        curr_j += 1
-    else:
-        if cost > 500:
-            curr_j -= 1
-used_coupons_days.reverse()
-print(f"{min_cost} {total_coupons_spent}")
-if used_coupons_days:
-    print(*(used_coupons_days))
+            res = min(res, cost + solve(day + 1, coupons))
+        return res
+    min_cost = solve(0, 0)
+    used_coupons_days = []
+    curr_coupons = 0
+    for day in range(n):
+        cost = costs[day]
+        if curr_coupons > 0 and solve(day, curr_coupons) == solve(day + 1, curr_coupons - 1):
+            used_coupons_days.append(day + 1)
+            curr_coupons -= 1
+        else:
+            if cost > 500:
+                curr_coupons += 1
+
+    print(f"{min_cost} {len(used_coupons_days)}")
+    if used_coupons_days:
+        print(*(used_coupons_days))
+
+main()
+
