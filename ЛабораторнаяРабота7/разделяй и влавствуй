@@ -1,36 +1,24 @@
-def first(nums, target):
+def binary_search_bound(nums, target, find_first=True):
     left, right = 0, len(nums) - 1
     result = -1
     while left <= right:
         mid = left + (right - left) // 2
         if nums[mid] == target:
             result = mid
-            right = mid - 1
+            if find_first:
+                right = mid - 1
+            else:
+                left = mid + 1
         elif nums[mid] < target:
             left = mid + 1
         else:
             right = mid - 1
-    return result
 
-def last(nums, target):
-    left, right = 0, len(nums) - 1
-    result = -1
-    while left <= right:
-        mid = left + (right - left) // 2
-        if nums[mid] == target:
-            result = mid
-            left = mid + 1
-        elif nums[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
     return result
-
 nums1 = list(map(int, input().split()))
 target1 = int(input())
-
-first1 = first(nums1, target1)
-last1 = last(nums1, target1)
+first1 = binary_search_bound(nums1, target1, find_first=True)
+last1 = binary_search_bound(nums1, target1, find_first=False)
 
 if first1 != -1:
     print(f"индекс первого вхождения {first1}")
